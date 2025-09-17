@@ -1,5 +1,6 @@
 ---
 title: "Assignment 2"
+author: "Zupeng Zeng & Troy Liu"
 subtitle: "Due at 11:59pm on September 30."
 format: pdf
 editor: visual
