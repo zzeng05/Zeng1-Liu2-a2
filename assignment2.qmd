@@ -35,26 +35,50 @@ Answer the following questions for the keywords "crime" and "loans".
 -   Find the mean, median and variance of the search hits for the keywords.
 
     ```{r}
-    summary(res)
-    head(res$interest_over_time)
-
-    hits_res <- res$interest_over_time %>%
-      group_by(keyword) %>%
-      summarise(
-        mean_hits = mean(hits, na.rm = TRUE),
-        median_hits = median(hits, na.rm = TRUE),
-        variance_hits = var(hits, na.rm = TRUE)
-      )
-    hits_res
+summary(res)
+head(res$interest_over_time)
+hits_res <- res$interest_over_time %>%
+  group_by(keyword) %>%
+  summarise(
+    mean_hits = mean(hits, na.rm = TRUE),
+    median_hits = median(hits, na.rm = TRUE),
+    variance_hits = var(hits, na.rm = TRUE)
+   )
+hits_res
     ```
 
     The mean of the crime is 56.189, median is 56, and variance is 89.387; The mean of the loans is 68.396, median is 65, and variance is 106.589.
 
 -   Which cities (locations) have the highest search frequency for `loans`? Note that there might be multiple rows for each city if there were hits for both "crime" and "loans" in that city. It might be easier to answer this question if we had the search hits info for both search terms in two separate variables. That is, each row would represent a unique city.
 
+    ```{r}
+loc_res <- res$interest_by_city
+loc_res
+
+loc_wide <- loc_res %>%
+  pivot_wider(
+    names_from = keyword, 
+    values_from = hits
+  )
+loc_wide
+
+top_loans <- loc_wide %>%
+  arrange(desc(loans))
+
+head(top_loans, 10)
+    ```
+
 -   Is there a relationship between the search intensities between the two keywords we used?
 
+    ```{r}
+
+    ```
+
 Repeat the above for keywords related to covid. Make sure you use multiple keywords like we did above. Try several different combinations and think carefully about words that might make sense within this context.
+
+```{r}
+
+```
 
 ## Google Trends + ACS
 
@@ -65,7 +89,7 @@ Now lets add another data set. The `censusapi` package provides a nice R interfa
 Once you have an access key, save it as a text file, then read this key in the `cs_key` object. We will use this object in all following API queries. Note that I called my text file `census-key.txt` – yours might be different!
 
 ```{r}
-cs_key <- read_file("census-key.txt")
+cs_key <- read_file("/Users/troyliu/Documents/Education/University of Michigan/Master's Degree/SurvMeth 727/assignment/assignment 2/census-key.txt")
 ```
 
 In the following, we request basic socio-demographic information (population, median age, median household income, income per capita) for cities and villages in the state of Illinois. Documentation for the 5-year ACS API can be found here: <https://www.census.gov/data/developers/data-sets/acs-5year.html>. The information about the variables used here can be found here: <https://api.census.gov/data/2022/acs/acs5/variables.html>.
@@ -102,6 +126,10 @@ acs_il <-
 ```
 
 It seems like we could try to use this location information listed above to merge this data set with the Google Trends data. However, we first have to clean `NAME` so that it has the same structure as `location` in the search interest by city data. Add a new variable `location` to the ACS data that only includes city names.
+
+```{r}
+
+```
 
 Answer the following questions with the "crime" and "loans" Google trends data and the ACS data.
 
