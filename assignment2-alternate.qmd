@@ -41,12 +41,27 @@ Answer the following questions:
 
 ```{r}
 covid_wide <- covid %>% 
-  pivot_wider()
+  select(geo_value, time_value, value) %>%
+  pivot_wider(
+    names_from = time_value,
+    values_from = value
+  )
 ```
 
 -   Find the mean, median, and variance of the estimate on each of the days from April 1, 2020 to April 14, 2020. (Note that this is not the appropriate way of finding the overall measures in reality because we aren't using weights)
+```{r}
+covid_stat <- covid %>% 
+  summarise(covid_mean = mean(value),
+            covid_median = median(value),
+            covid_variance = var(value))
+covid_stat
+```
 
 -   Which counties had the highest report Covid-like symptoms on each of the days within this range?
+```{r}
+
+```
+
 
 Using the API, get the actual COVID cases from the JHU Cases and Deaths (using the link above, `confirmed_7dav_incidence_prop`) from May 1, 2020 to May 14, 2020. This is the number of confirmed COVID cases per 100,000 people. Find the correlation between reported COVID-like symptoms and actual COVID cases per 100,000 people within each county a month later. Is there a relationship?
 
