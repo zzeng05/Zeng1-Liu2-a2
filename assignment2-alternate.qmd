@@ -55,7 +55,7 @@ Now lets add another data set. The `censusapi` package provides a nice R interfa
 Once you have an access key, save it as a text file, then read this key in the `cs_key` object. We will use this object in all following API queries. Note that I called my text file `census-key.txt` – yours might be different!
 
 ```{r}
-cs_key <- read_file("census-key.txt")
+cs_key <- read_file("/Users/zpzzz/Desktop/SURV727/census-key.txt")
 ```
 
 You can navigate through the documentation for all Census Data APIs here: <https://www.census.gov/data/developers/data-sets.html> Documentation for the 5-year ACS API can be found here: <https://www.census.gov/data/developers/data-sets/acs-5year.html>.
