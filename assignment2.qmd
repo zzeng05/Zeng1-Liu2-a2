@@ -65,7 +65,7 @@ loc_wide
 top_loans <- loc_wide %>%
   arrange(desc(loans))
 
-head(top_loans, 10)
+head(top_loans, 5)
     ```
 
 -   Is there a relationship between the search intensities between the two keywords we used?
@@ -90,6 +90,7 @@ Once you have an access key, save it as a text file, then read this key in the `
 
 ```{r}
 cs_key <- read_file("/Users/troyliu/Documents/Education/University of Michigan/Master's Degree/SurvMeth 727/assignment/assignment 2/census-key.txt")
+cs_key
 ```
 
 In the following, we request basic socio-demographic information (population, median age, median household income, income per capita) for cities and villages in the state of Illinois. Documentation for the 5-year ACS API can be found here: <https://www.census.gov/data/developers/data-sets/acs-5year.html>. The information about the variables used here can be found here: <https://api.census.gov/data/2022/acs/acs5/variables.html>.
@@ -128,7 +129,9 @@ acs_il <-
 It seems like we could try to use this location information listed above to merge this data set with the Google Trends data. However, we first have to clean `NAME` so that it has the same structure as `location` in the search interest by city data. Add a new variable `location` to the ACS data that only includes city names.
 
 ```{r}
-
+acs_il
+acs_il %>% 
+  mutate(acs_il$location, Value = NAME)
 ```
 
 Answer the following questions with the "crime" and "loans" Google trends data and the ACS data.
