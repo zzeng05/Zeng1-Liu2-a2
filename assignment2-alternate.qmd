@@ -40,11 +40,28 @@ Answer the following questions:
 
 -   Change the data from long to wide format by including the estimate of Covid-like symptoms for each day as a column. There should be a column for `geo_value` as well as a column for each of the days in the dataset.
 
+```{r}
+
+```
+
 -   Find the mean, median, and variance of the estimate on each of the days from April 1, 2020 to April 14, 2020. (Note that this is not the appropriate way of finding the overall measures in reality because we aren't using weights)
+
+```{r}
+
+```
 
 -   Which counties had the highest report Covid-like symptoms on each of the days within this range?
 
+```{r}
+
+```
+
 Using the API, get the actual COVID cases from the JHU Cases and Deaths (using the link above, `confirmed_7dav_incidence_prop`) from May 1, 2020 to May 14, 2020. This is the number of confirmed COVID cases per 100,000 people. Find the correlation between reported COVID-like symptoms and actual COVID cases per 100,000 people within each county a month later. Is there a relationship?
+
+```{r}
+
+```
+
 
 ## Covidcast API Data + ACS
 
@@ -92,14 +109,34 @@ Answer the following questions with the COVID data and ACS data.
 
 -   First, check how many counties aren't matched. Then, create a new data set by joining the two datasets. Keep only counties that appear in both data sets.
 
+```{r}
+
+```
+
 -   Compute the mean of the proportion of people with covid-like illness symptoms on April 1, 2020 for counties that have an above average median household income and for those that have an below average median household income. When building your pipe, start with creating the grouping variable and then proceed with the remaining tasks. What conclusions might you draw from this?
 
+```{r}
+
+```
+
 -   Is there a relationship between the median household income and the proportion of people reporting Covid-like illness symptoms? Describe the relationship and use a scatterplot.
+
+```{r}
+
+```
 
 ## Using Other Census Data
 
 Suppose we wanted to use the 2020 1-year ACS instead of the 5-year ACS. Why would we be unable to do this?
 
+```{r}
+
+```
+
 *Hint: Read the documentation for the 1-year ACS*
 
 Instead, repeat the steps above to merge the Google Trends data to the 1-year ACS from 2021 instead. Do the same analysis as above.
+
+```{r}
+
+```
