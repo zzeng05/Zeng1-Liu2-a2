@@ -39,6 +39,11 @@ Answer the following questions:
 
 -   Change the data from long to wide format by including the estimate of Covid-like symptoms for each day as a column. There should be a column for `geo_value` as well as a column for each of the days in the dataset.
 
+```{r}
+covid_wide <- covid %>% 
+  pivot_wider()
+```
+
 -   Find the mean, median, and variance of the estimate on each of the days from April 1, 2020 to April 14, 2020. (Note that this is not the appropriate way of finding the overall measures in reality because we aren't using weights)
 
 -   Which counties had the highest report Covid-like symptoms on each of the days within this range?
@@ -54,7 +59,7 @@ Now lets add another data set. The `censusapi` package provides a nice R interfa
 Once you have an access key, save it as a text file, then read this key in the `cs_key` object. We will use this object in all following API queries. Note that I called my text file `census-key.txt` – yours might be different!
 
 ```{r}
-cs_key <- read_file("census-key.txt")
+cs_key <- read_file("/Users/troyliu/Documents/Education/University of Michigan/Master's Degree/SurvMeth 727/assignment/assignment 2/census-key.txt")
 ```
 
 You can navigate through the documentation for all Census Data APIs here: <https://www.census.gov/data/developers/data-sets.html> Documentation for the 5-year ACS API can be found here: <https://www.census.gov/data/developers/data-sets/acs-5year.html>.
