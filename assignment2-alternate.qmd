@@ -41,25 +41,87 @@ Answer the following questions:
 -   Change the data from long to wide format by including the estimate of Covid-like symptoms for each day as a column. There should be a column for `geo_value` as well as a column for each of the days in the dataset.
 
 ```{r}
+# fetch CLI again (actual call for the rest of the assignment)
+covid_cli <- pub_covidcast('fb-survey','smoothed_wcli','county','day',
+                           time_values = c(20200401:20200414)) |>
+  as_tibble() |>
+  select(geo_value, time_value, value)
 
+# long -> wide
+cli_wide <- covid_cli |>
+  pivot_wider(names_from = time_value, values_from = value, names_prefix = "d_")
+
+cli_wide |> glimpse()
 ```
 
 -   Find the mean, median, and variance of the estimate on each of the days from April 1, 2020 to April 14, 2020. (Note that this is not the appropriate way of finding the overall measures in reality because we aren't using weights)
 
 ```{r}
+cli_daily_stats <- covid_cli |>
+  group_by(time_value) |>
+  summarise(
+    n        = sum(!is.na(value)),
+    mean     = mean(value,   na.rm = TRUE),
+    median   = median(value, na.rm = TRUE),
+    variance = var(value,    na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  arrange(time_value)
 
+cli_daily_stats
 ```
 
 -   Which counties had the highest report Covid-like symptoms on each of the days within this range?
 
 ```{r}
+cli_daily_max <- covid_cli |>
+  group_by(time_value) |>
+  slice_max(value, n = 1, with_ties = FALSE) |>
+  ungroup() |>
+  arrange(time_value)
 
+cli_daily_max
 ```
 
 Using the API, get the actual COVID cases from the JHU Cases and Deaths (using the link above, `confirmed_7dav_incidence_prop`) from May 1, 2020 to May 14, 2020. This is the number of confirmed COVID cases per 100,000 people. Find the correlation between reported COVID-like symptoms and actual COVID cases per 100,000 people within each county a month later. Is there a relationship?
 
 ```{r}
+# JHU 7-day incidence per 100k, May 1–14, 2020
+jhu_cases <- pub_covidcast('jhu-csse','confirmed_7dav_incidence_prop','county','day',
+                           time_values = c(20200501:20200514)) |>
+  as_tibble() |>
+  select(geo_value, time_value, value) |>
+  rename(incidence = value)
 
+# align by "day index" within county: April day 1 ↔ May day 1, etc.
+cli_for_corr <- covid_cli |>
+  group_by(geo_value) |>
+  arrange(time_value, .by_group = TRUE) |>
+  mutate(day_i = row_number()) |>
+  ungroup() |>
+  transmute(geo_value, day_i, cli = value)
+
+cases_for_corr <- jhu_cases |>
+  group_by(geo_value) |>
+  arrange(time_value, .by_group = TRUE) |>
+  mutate(day_i = row_number()) |>
+  ungroup() |>
+  transmute(geo_value, day_i, incidence)
+
+paired <- inner_join(cli_for_corr, cases_for_corr, by = c("geo_value","day_i"))
+
+# per-county Pearson correlation (>=3 aligned days)
+county_corr <- paired |>
+  group_by(geo_value) |>
+  summarise(n = n(),
+            cor_cli_cases = if (n() >= 3) cor(cli, incidence, use = "complete.obs") else NA_real_,
+            .groups = "drop")
+
+# overall correlation pooled across counties/days
+overall_cor <- cor(paired$cli, paired$incidence, use = "complete.obs")
+
+list(overall_correlation = overall_cor,
+     county_correlation_summary = summary(county_corr$cor_cli_cases))
 ```
 
 
@@ -110,19 +172,51 @@ Answer the following questions with the COVID data and ACS data.
 -   First, check how many counties aren't matched. Then, create a new data set by joining the two datasets. Keep only counties that appear in both data sets.
 
 ```{r}
+# create 5-digit county FIPS to match covid geo_value
+acs <- acs |>
+  mutate(location = sprintf("%02s%03s", state, county))
 
+# CLI on April 1, 2020
+cli_0401 <- covid_cli |>
+  filter(time_value == 20200401) |>
+  transmute(location = geo_value, cli0401 = value)
+
+# counts of unmatched
+n_unmatched_cli <- anti_join(cli_0401, acs, by = "location") |> nrow()
+n_unmatched_acs <- anti_join(acs,      cli_0401, by = "location") |> nrow()
+c(unmatched_cli = n_unmatched_cli, unmatched_acs = n_unmatched_acs)
+
+# keep only intersection
+covid_acs20 <- inner_join(cli_0401, acs, by = "location")
+covid_acs20 |> glimpse()
 ```
 
 -   Compute the mean of the proportion of people with covid-like illness symptoms on April 1, 2020 for counties that have an above average median household income and for those that have an below average median household income. When building your pipe, start with creating the grouping variable and then proceed with the remaining tasks. What conclusions might you draw from this?
 
 ```{r}
+thr <- mean(covid_acs20$hh_income, na.rm = TRUE)
 
+covid_acs20 |>
+  mutate(income_group = if_else(hh_income >= thr, "above_avg", "below_avg")) |>
+  group_by(income_group) |>
+  summarise(
+    n = n(),
+    mean_cli0401   = mean(cli0401, na.rm = TRUE),
+    median_cli0401 = median(cli0401, na.rm = TRUE),
+    .groups = "drop"
+  )
 ```
 
 -   Is there a relationship between the median household income and the proportion of people reporting Covid-like illness symptoms? Describe the relationship and use a scatterplot.
 
 ```{r}
+ggplot(covid_acs20, aes(x = hh_income, y = cli0401)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Median household income (USD, ACS 2020 5-year)",
+       y = "Covid-like illness (smoothed_wcli) on 2020-04-01")
 
+cor(covid_acs20$hh_income, covid_acs20$cli0401, use = "complete.obs")
 ```
 
 ## Using Other Census Data
@@ -130,7 +224,9 @@ Answer the following questions with the COVID data and ACS data.
 Suppose we wanted to use the 2020 1-year ACS instead of the 5-year ACS. Why would we be unable to do this?
 
 ```{r}
-
+cat("The ACS 1-year 2020 products only cover areas with population ≳ 65,000 and were affected by",
+    "pandemic-era data collection issues; many counties are not available in the 1-year tables.",
+    "Therefore we cannot obtain consistent county-level coverage to join with COVIDcast for 2020.\n")
 ```
 
 *Hint: Read the documentation for the 1-year ACS*
@@ -138,5 +234,53 @@ Suppose we wanted to use the 2020 1-year ACS instead of the 5-year ACS. Why woul
 Instead, repeat the steps above to merge the Google Trends data to the 1-year ACS from 2021 instead. Do the same analysis as above.
 
 ```{r}
+# Google Trends (smoothed_search), Apr 1–14, 2021
+gt <- pub_covidcast('google-symptoms','smoothed_search','county','day',
+                    time_values = c(20210401:20210414)) |>
+  as_tibble() |>
+  select(geo_value, time_value, value) |>
+  rename(gt_value = value)
 
+# pick Apr 1, 2021 level for cross-sectional join
+gt_0401 <- gt |>
+  filter(time_value == 20210401) |>
+  transmute(location = geo_value, gt0401 = gt_value)
+
+# ACS 1-year (2021) — only larger-pop counties available
+acs1_2021 <- getCensus(name = "acs/acs1",
+                       vintage = 2021,
+                       vars = c("NAME","B01001_001E","B19013_001E","B19301_001E"),
+                       region = "county:*",
+                       key = cs_key) |>
+  as_tibble() |>
+  rename(pop = B01001_001E,
+         hh_income = B19013_001E,
+         income = B19301_001E) |>
+  mutate(location = sprintf("%02s%03s", state, county))
+
+# join + above/below-income comparison
+gt_acs1 <- inner_join(gt_0401, acs1_2021, by = "location")
+
+thr1 <- mean(gt_acs1$hh_income, na.rm = TRUE)
+
+gt_acs1 |>
+  mutate(income_group = if_else(hh_income >= thr1, "above_avg", "below_avg")) |>
+  group_by(income_group) |>
+  summarise(
+    n = n(),
+    mean_gt0401   = mean(gt0401, na.rm = TRUE),
+    median_gt0401 = median(gt0401, na.rm = TRUE),
+    .groups = "drop"
+  )
+```
+
+```{r}
+# Scatterplot + correlation (2021 1-year)
+ggplot(gt_acs1, aes(x = hh_income, y = gt0401)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Median household income (USD, ACS 2021 1-year)",
+       y = "Google Trends smoothed_search (2021-04-01)")
+
+cor(gt_acs1$hh_income, gt_acs1$gt0401, use = "complete.obs")
 ```
