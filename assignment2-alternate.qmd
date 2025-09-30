@@ -202,15 +202,15 @@ Answer the following questions with the COVID data and ACS data.
 -   First, check how many counties aren't matched. Then, create a new data set by joining the two datasets. Keep only counties that appear in both data sets.
 
 ```{r}
-cli_0401 <- covid %>%
-  filter(time_value == 20200401L) %>%
-  transmute(location = geo_value, cli0401 = value)
+cli_0406 <- covid %>%
+  filter(time_value == 20200406L) %>%
+  transmute(location = geo_value, cli0406 = value)
 
-not_in_acs   <- anti_join(cli_0401, acs, by = "location") %>% nrow()
+not_in_acs   <- anti_join(cli_0406, acs, by = "location") %>% nrow()
 not_in_covid <- anti_join(acs, cli_0401, by = "location") %>% nrow()
 c(not_in_acs = not_in_acs, not_in_covid = not_in_covid)
 
-covid_acs <- inner_join(cli_0401, acs, by = "location")
+covid_acs <- inner_join(cli_0406, acs, by = "location")
 covid_acs %>% glimpse()
 ```
 
