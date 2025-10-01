@@ -1,6 +1,6 @@
 ---
 title: "Assignment 2"
-subtitle: "Due at 11:59pm on September 30."
+subtitle: "Due at 11:59pm on Oct 3rd."
 Auther: "Troy (Shengkun) Liu & Zupeng Zeng"
 format: html
 editor: visual
@@ -53,12 +53,11 @@ covid_wide
 -   Find the mean, median, and variance of the estimate on each of the days from April 6, 2020 to April 14, 2020. (Note that this is not the appropriate way of finding the overall measures in reality because we aren't using weights)
 
 ```{r}
-covid_stat <- covid %>% 
+covid %>% 
   group_by(time_value) %>% 
-  summarise(covid_mean = mean(value),
-            covid_median = median(value),
-            covid_variance = var(value))
-covid_stat
+  summarise(mean = mean(value),
+            median = median(value),
+            variance = var(value))
 ```
 
 -   On the day of 04/06/2020, the mean of covid-like symptoms is 0.955; Median is 0.849, and variance is 0.454.
@@ -82,12 +81,10 @@ covid_stat
 -   Which counties had the highest report Covid-like symptoms on each of the days within this range?
 
 ```{r}
-top_counties <- covid %>%
+covid %>%
   select(time_value, geo_value, value) %>% 
   group_by(time_value) %>%
   slice_max(order_by = value, n = 1)
-  
-top_counties
 ```
 
 -   On the day of 04/06/2020, county ID of 36005 has the highest report Covid-like symptoms with a value of 3.414.
@@ -103,7 +100,6 @@ top_counties
 Using the API, get the actual COVID cases from the JHU Cases and Deaths (using the link above, `confirmed_7dav_incidence_prop`) from May 6, 2020 to May 14, 2020. This is the number of confirmed COVID cases per 100,000 people. Find the correlation between reported COVID-like symptoms and actual COVID cases per 100,000 people within each county a month later. Is there a relationship?
 
 ```{r}
-# Obtain May data
 cases_may <- pub_covidcast(
   'jhu-csse',
   'confirmed_7dav_incidence_prop',
@@ -118,36 +114,31 @@ head(cases_may)
 ```
 
 ```{r}
-# create date var April and May to match up the same day in later joining step
-covid_april <- covid %>% 
+# Make day-of-month keys
+covid_april <- covid %>%
   mutate(day = as.integer(format(time_value, "%d"))) %>%
-  select(geo_value, day, covid_symptom = value)
+  select(geo_value, day, cli = value)
 
-covid_may <- covid_2 %>%
+cases_may_clean <- cases_may %>%
   mutate(day = as.integer(format(time_value, "%d"))) %>%
-  select(geo_value, day, actual_case = value)
+  filter(geo_value != "01000") %>% 
+  select(geo_value, day, incidence)
 
-# combine datasets
-covid_joined <- inner_join(covid_april, covid_may, by = c("geo_value", "day"))
-
-covid_joined
+# Pair same county + same (6–14) day index across months
+covid_cases_joined <- inner_join(covid_april, cases_may_clean, by = c("geo_value","day"))
+head(covid_cases_joined)
 ```
 
 ```{r}
-# Overall correlation (pooled)
-overall_cor <- with(covid_joined, cor(covid_symptom, actual_case, use = "complete.obs"))
-overall_cor
+# Overall correlation (pooled across all counties/days)
+with(covid_cases_joined, cor(cli, incidence, use = "complete.obs"))
 
-# Per-county correlations (need >= 3 paired days to be meaningful)
-cor_by_county <- covid_joined %>%
+# Correlation within each county
+cor_by_county <- covid_cases_joined %>%
   group_by(geo_value) %>%
-  summarise(
-    n = n(),
-    cor_cli_cases = if (n() >= 3) cor(covid_symptom, actual_case, use = "complete.obs") else NA_real_,
-    .groups = "drop"
-  )
-
+  summarise(cor_cli_cases = cor(cli, incidence, use = "complete.obs"), .groups = "drop")
 summary(cor_by_county$cor_cli_cases)
+head(cor_by_county, 10)
 ```
 
 ## Covidcast API Data + ACS
@@ -202,28 +193,45 @@ Answer the following questions with the COVID data and ACS data.
 -   First, check how many counties aren't matched. Then, create a new data set by joining the two datasets. Keep only counties that appear in both data sets.
 
 ```{r}
-cli_0406 <- covid %>%
-  filter(time_value == 20200406L) %>%
-  transmute(location = geo_value, cli0406 = value)
+covid_acs_matched <- acs %>%
+  inner_join(
+    covid %>% filter(nchar(geo_value) == 5, substr(geo_value, 3, 5) != "000"),
+    by = c("location" = "geo_value")
+  )
 
-not_in_acs   <- anti_join(cli_0406, acs, by = "location") %>% nrow()
-not_in_covid <- anti_join(acs, cli_0401, by = "location") %>% nrow()
-c(not_in_acs = not_in_acs, not_in_covid = not_in_covid)
-
-covid_acs <- inner_join(cli_0406, acs, by = "location")
-covid_acs %>% glimpse()
+head(covid_acs_matched)
 ```
 
 -   Compute the mean of the proportion of people with covid-like illness symptoms on April 1, 2020 for counties that have an above average median household income and for those that have an below average median household income. When building your pipe, start with creating the grouping variable and then proceed with the remaining tasks. What conclusions might you draw from this?
 
 ```{r}
-
+covid_income_0406 <- covid_acs_matched %>%
+  filter(time_value == "2020-04-06") %>%  
+  mutate(income_group = if_else(hh_income >= mean(hh_income, na.rm = TRUE),
+                                "above_avg", "below_avg")) %>%
+  group_by(income_group) %>%
+  summarise(
+    n          = n(),
+    mean_cli   = mean(value,   na.rm = TRUE),
+    median_cli = median(value, na.rm = TRUE),
+    .groups = "drop"
+  )
+covid_income_0406
 ```
 
 -   Is there a relationship between the median household income and the proportion of people reporting Covid-like illness symptoms? Describe the relationship and use a scatterplot.
 
 ```{r}
+covid_0406 <- covid_acs_matched %>%
+  filter(time_value == "2020-04-06")
 
+ggplot(covid_0406, aes(x = hh_income, y = value)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Median household income (ACS 2020 5-year, USD)",
+       y = "Covid-like illness (smoothed_wcli), 2020-04-06")
+
+cor(covid_0406$hh_income, covid_0406$value, use = "complete.obs")
 ```
 
 ## Using Other Census Data
