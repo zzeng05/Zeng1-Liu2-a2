@@ -25,7 +25,6 @@ Our first data source is the Delphi COVIDcast data. You can access this using th
 
 ```{r}
 #| eval: FALSE
-
 covid <- pub_covidcast('fb-survey', 
                        'smoothed_wcli', 
                        'county', 
@@ -60,24 +59,6 @@ covid %>%
             variance = var(value))
 ```
 
--   On the day of 04/06/2020, the mean of covid-like symptoms is 0.955; Median is 0.849, and variance is 0.454.
-
--   On the day of 04/07/2020, the mean of covid-like symptoms is 0.89; Median is 0.779, and variance is 0.341.
-
--   On the day of 04/08/2020, the mean of covid-like symptoms is 0.871; Median is 0.789, and variance is 0.3.
-
--   On the day of 04/09/2020, the mean of covid-like symptoms is 0.856; Median is 0.778, and variance is 0.278.
-
--   On the day of 04/10/2020, the mean of covid-like symptoms is 0.85; Median is 0.777, and variance is 0.283.
-
--   On the day of 04/11/2020, the mean of covid-like symptoms is 0.853; Median is 0.776, and variance is 0.264.
-
--   On the day of 04/12/2020, the mean of covid-like symptoms is 0.854; Median is 0.784, and variance is 0.26.
-
--   On the day of 04/13/2020, the mean of covid-like symptoms is 0.83; Median is 0.765, and variance is 0.244.
-
--   On the day of 04/14/2020, the mean of covid-like symptoms is 0.796; Median is 0.719, and variance is 0.255.
-
 -   Which counties had the highest report Covid-like symptoms on each of the days within this range?
 
 ```{r}
@@ -86,16 +67,6 @@ covid %>%
   group_by(time_value) %>%
   slice_max(order_by = value, n = 1)
 ```
-
--   On the day of 04/06/2020, county ID of 36005 has the highest report Covid-like symptoms with a value of 3.414.
--   On the day of 04/07/2020, county ID of 36087 has the highest report Covid-like symptoms with a value of 4.586.
--   On the day of 04/08/2020, county ID of 36087 has the highest report Covid-like symptoms with a value of 5.156.
--   On the day of 04/09/2020, county ID of 36087 has the highest report Covid-like symptoms with a value of 4.631.
--   On the day of 04/10/2020, county ID of 36087 has the highest report Covid-like symptoms with a value of 4.518.
--   On the day of 04/11/2020, county ID of 36087 has the highest report Covid-like symptoms with a value of 4.292.
--   On the day of 04/12/2020, county ID of 36087 has the highest report Covid-like symptoms with a value of 4.409.
--   On the day of 04/13/2020, county ID of 36087 has the highest report Covid-like symptoms with a value of 4.691.
--   On the day of 04/14/2020, county ID of 36079 has the highest report Covid-like symptoms with a value of 3.969.
 
 Using the API, get the actual COVID cases from the JHU Cases and Deaths (using the link above, `confirmed_7dav_incidence_prop`) from May 6, 2020 to May 14, 2020. This is the number of confirmed COVID cases per 100,000 people. Find the correlation between reported COVID-like symptoms and actual COVID cases per 100,000 people within each county a month later. Is there a relationship?
 
@@ -121,25 +92,28 @@ covid_april <- covid %>%
 
 cases_may_clean <- cases_may %>%
   mutate(day = as.integer(format(time_value, "%d"))) %>%
-  filter(geo_value != "01000") %>% 
+
   select(geo_value, day, incidence)
 
 # Pair same county + same (6–14) day index across months
-covid_cases_joined <- inner_join(covid_april, cases_may_clean, by = c("geo_value","day"))
+covid_cases_joined <- inner_join(covid_april, cases_may_clean, by = c("geo_value","day")) 
 head(covid_cases_joined)
 ```
 
-```{r}
+```{r, warning=FALSE}
 # Overall correlation (pooled across all counties/days)
 with(covid_cases_joined, cor(cli, incidence, use = "complete.obs"))
 
-# Correlation within each county
+# Correlation within each county, dropping rows with NA correlation
 cor_by_county <- covid_cases_joined %>%
   group_by(geo_value) %>%
-  summarise(cor_cli_cases = cor(cli, incidence, use = "complete.obs"), .groups = "drop")
+  summarise(cor_cli_cases = cor(cli, incidence, use = "complete.obs"),
+            .groups = "drop") %>%
+  filter(!is.na(cor_cli_cases))
 summary(cor_by_county$cor_cli_cases)
-head(cor_by_county, 10)
+head(cor_by_county)
 ```
+- The per-county Pearson correlations (after dropping state-level rows and NAs) range from −1.00 to +1.00 with median around −0.0015 and mean about −0.01. This indicates no clear overall relationship a month later.
 
 ## Covidcast API Data + ACS
 
@@ -218,6 +192,8 @@ covid_income_0406 <- covid_acs_matched %>%
   )
 covid_income_0406
 ```
+- Counties with below-average median household income reported higher CLI on 2020-04-06 (about +0.093 in the mean and  +0.134 in the median). Since the it is descriptive and unweighted, it does not prove any casuality.
+
 
 -   Is there a relationship between the median household income and the proportion of people reporting Covid-like illness symptoms? Describe the relationship and use a scatterplot.
 
@@ -233,6 +209,8 @@ ggplot(covid_0406, aes(x = hh_income, y = value)) +
 
 cor(covid_0406$hh_income, covid_0406$value, use = "complete.obs")
 ```
+
+- The scatterplot shows a slight downward trend, and the Pearson correlation is −0.0507, indicating little meaningful linear relationship between median household income and CLI on 2020-04-06. The wide scatter around the fitted line indicates substantial variability across counties.
 
 ## Using Other Census Data
 
