@@ -59,6 +59,25 @@ covid %>%
             variance = var(value))
 ```
 
+-   On the day of 04/06/2020, the mean of covid-like symptoms is 0.955; Median is 0.849, and variance is 0.454.
+
+-   On the day of 04/07/2020, the mean of covid-like symptoms is 0.89; Median is 0.779, and variance is 0.341.
+
+-   On the day of 04/08/2020, the mean of covid-like symptoms is 0.871; Median is 0.789, and variance is 0.3.
+
+-   On the day of 04/09/2020, the mean of covid-like symptoms is 0.856; Median is 0.778, and variance is 0.278.
+
+-   On the day of 04/10/2020, the mean of covid-like symptoms is 0.85; Median is 0.777, and variance is 0.283.
+
+-   On the day of 04/11/2020, the mean of covid-like symptoms is 0.853; Median is 0.776, and variance is 0.264.
+
+-   On the day of 04/12/2020, the mean of covid-like symptoms is 0.854; Median is 0.784, and variance is 0.26.
+
+-   On the day of 04/13/2020, the mean of covid-like symptoms is 0.83; Median is 0.765, and variance is 0.244.
+
+-   On the day of 04/14/2020, the mean of covid-like symptoms is 0.796; Median is 0.719, and variance is 0.255.
+
+
 -   Which counties had the highest report Covid-like symptoms on each of the days within this range?
 
 ```{r}
@@ -67,6 +86,17 @@ covid %>%
   group_by(time_value) %>%
   slice_max(order_by = value, n = 1)
 ```
+
+-   On the day of 04/06/2020, county ID of 36005 has the highest report Covid-like symptoms with a value of 3.414.
+-   On the day of 04/07/2020, county ID of 36087 has the highest report Covid-like symptoms with a value of 4.586.
+-   On the day of 04/08/2020, county ID of 36087 has the highest report Covid-like symptoms with a value of 5.156.
+-   On the day of 04/09/2020, county ID of 36087 has the highest report Covid-like symptoms with a value of 4.631.
+-   On the day of 04/10/2020, county ID of 36087 has the highest report Covid-like symptoms with a value of 4.518.
+-   On the day of 04/11/2020, county ID of 36087 has the highest report Covid-like symptoms with a value of 4.292.
+-   On the day of 04/12/2020, county ID of 36087 has the highest report Covid-like symptoms with a value of 4.409.
+-   On the day of 04/13/2020, county ID of 36087 has the highest report Covid-like symptoms with a value of 4.691.
+-   On the day of 04/14/2020, county ID of 36079 has the highest report Covid-like symptoms with a value of 3.969.
+
 
 Using the API, get the actual COVID cases from the JHU Cases and Deaths (using the link above, `confirmed_7dav_incidence_prop`) from May 6, 2020 to May 14, 2020. This is the number of confirmed COVID cases per 100,000 people. Find the correlation between reported COVID-like symptoms and actual COVID cases per 100,000 people within each county a month later. Is there a relationship?
 
