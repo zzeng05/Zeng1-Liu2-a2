@@ -143,6 +143,7 @@ cor_by_county <- covid_cases_joined %>%
 summary(cor_by_county$cor_cli_cases)
 head(cor_by_county)
 ```
+
 - The per-county Pearson correlations (after dropping state-level rows and NAs) range from −1.00 to +1.00 with median around −0.0015 and mean about −0.01. This indicates no clear overall relationship a month later.
 
 ## Covidcast API Data + ACS
@@ -244,12 +245,68 @@ cor(covid_0406$hh_income, covid_0406$value, use = "complete.obs")
 
 ## Using Other Census Data
 
-Suppose we wanted to use the 2020 1-year ACS instead of the 5-year ACS. Why would we be unable to do this?
+Suppose we wanted to use the 2020 1-year ACS instead of the 5-year ACS. Why would we beunable to do this?
+
+-   Because of the coverage error, the 1-year acs dataset only includes counties with ≥65,000 people, so small-population counties are not taken into account. When using the 1-year acs data to merge with covid data, there will be a lot of counties has no data to be matched with.
 
 *Hint: Read the documentation for the 1-year ACS*
 
-Instead, repeat the steps above to merge the Google Trends data to the 1-year ACS from 2021 instead. Do the same analysis as above.
+Instead, repeat the steps above to merge the Delphi COVIDcast data to the 1-year ACS from
+2021 (rather than the 5-year ACS). Do the same analysis as above.
 
 ```{r}
+## COVIDcast CLI for 2020-04-06 (drop state-level rows like 01000)
+cli_0406 <- covid %>%
+  filter(time_value == as.Date("2020-04-06"),
+         substr(geo_value, 3, 5) != "000") %>%
+  transmute(location = geo_value, cli0406 = value)
 
+## ACS 1-year (2021) by county, build 5-digit FIPS key
+acs1_2021 <- getCensus(
+  name    = "acs/acs1",
+  vintage = 2021,
+  vars    = c("NAME","B01001_001E","B19013_001E","B19301_001E"),
+  region  = "county",
+  key     = cs_key
+) %>%
+  as_tibble() %>%
+  rename(
+    pop       = B01001_001E,
+    hh_income = B19013_001E,
+    income    = B19301_001E
+  ) %>%
+  mutate(location = sprintf("%02s%03s", state, county))
+
+## Join: keep only counties present in both
+dat21 <- inner_join(acs1_2021, cli_0406, by = "location")
+head(dat21)
 ```
+
+```{r}
+# Above/below-average median household income
+thr1 <- mean(dat21$hh_income, na.rm = TRUE)
+
+dat21 %>%
+  mutate(income_group = if_else(hh_income >= thr1, "above_avg", "below_avg")) %>%
+  group_by(income_group) %>%
+  summarise(
+    n = n(),
+    mean_cli   = mean(cli0406,   na.rm = TRUE),
+    median_cli = median(cli0406, na.rm = TRUE),
+    .groups = "drop"
+  )
+```
+-   Counties with below-average median household income reported higher CLI on 2020-04-06 (about +0.907 in the mean and +0.782 in the median). Since the it is descriptive and unweighted, it does not prove any casuality.
+
+
+```{r}
+# Scatterplot + Pearson correlation
+ggplot(dat21, aes(x = hh_income, y = cli0406)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Median household income (ACS 2021 1-year, USD)",
+       y = "Covid-like illness (smoothed_wcli), 2020-04-06")
+
+cor(dat21$hh_income, dat21$cli0406, use = "complete.obs")
+```
+-   The scatterplot shows a slight downward trend, and the Pearson correlation is −0.0666, indicating little meaningful linear relationship between median household income and CLI on 2020-04-06. The wide scatter around the fitted line indicates substantial variability across counties.
