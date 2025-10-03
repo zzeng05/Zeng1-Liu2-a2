@@ -198,6 +198,26 @@ Answer the following questions with the COVID data and ACS data.
 -   First, check how many counties aren't matched. Then, create a new data set by joining the two datasets. Keep only counties that appear in both data sets.
 
 ```{r}
+# check how many counties aren't matched
+covid_keys <- covid %>%
+  filter(nchar(geo_value) == 5, substr(geo_value, 3, 5) != "000") %>%
+  distinct(geo_value) %>%
+  pull(geo_value)
+
+acs_keys <- acs %>%
+  distinct(location) %>%
+  pull(location)
+
+# Counties in COVID not in ACS
+covid_only <- setdiff(covid_keys, acs_keys)
+length(covid_only)
+
+# Counties in ACS not in COVID
+acs_only <- setdiff(acs_keys, covid_keys)
+length(acs_only)
+```
+
+```{r}
 covid_acs_matched <- acs %>%
   inner_join(
     covid %>% filter(nchar(geo_value) == 5, substr(geo_value, 3, 5) != "000"),
@@ -207,7 +227,7 @@ covid_acs_matched <- acs %>%
 head(covid_acs_matched)
 ```
 
--   Compute the mean of the proportion of people with covid-like illness symptoms on April 1, 2020 for counties that have an above average median household income and for those that have an below average median household income. When building your pipe, start with creating the grouping variable and then proceed with the remaining tasks. What conclusions might you draw from this?
+-   Compute the mean of the proportion of people with covid-like illness symptoms on April 6, 2020 for counties that have an above average median household income and for those that have an below average median household income. When building your pipe, start with creating the grouping variable and then proceed with the remaining tasks. What conclusions might you draw from this?
 
 ```{r}
 covid_income_0406 <- covid_acs_matched %>%
@@ -223,7 +243,7 @@ covid_income_0406 <- covid_acs_matched %>%
   )
 covid_income_0406
 ```
-- Counties with below-average median household income reported higher CLI on 2020-04-06 (about +0.093 in the mean and  +0.134 in the median). Since the it is descriptive and unweighted, it does not prove any casuality.
+- Counties with below-average median household income (n = 131) reported higher CLI than above-average income counties (n = 89): mean 1.011 vs 0.918, median 0.916 vs 0.782. Since the it is descriptive and unweighted, it does not prove any casuality.
 
 
 -   Is there a relationship between the median household income and the proportion of people reporting Covid-like illness symptoms? Describe the relationship and use a scatterplot.
@@ -255,13 +275,13 @@ Instead, repeat the steps above to merge the Delphi COVIDcast data to the 1-year
 2021 (rather than the 5-year ACS). Do the same analysis as above.
 
 ```{r}
-## COVIDcast CLI for 2020-04-06 (drop state-level rows like 01000)
+# COVIDcast CLI for 2020-04-06 (drop state-level rows like 01000)
 cli_0406 <- covid %>%
   filter(time_value == as.Date("2020-04-06"),
          substr(geo_value, 3, 5) != "000") %>%
   transmute(location = geo_value, cli0406 = value)
 
-## ACS 1-year (2021) by county, build 5-digit FIPS key
+# ACS 1-year (2021) by county, build 5-digit FIPS key
 acs1_2021 <- getCensus(
   name    = "acs/acs1",
   vintage = 2021,
@@ -277,7 +297,7 @@ acs1_2021 <- getCensus(
   ) %>%
   mutate(location = sprintf("%02s%03s", state, county))
 
-## Join: keep only counties present in both
+# keep only counties present in both
 dat21 <- inner_join(acs1_2021, cli_0406, by = "location")
 head(dat21)
 ```
@@ -296,11 +316,11 @@ dat21 %>%
     .groups = "drop"
   )
 ```
--   Counties with below-average median household income reported higher CLI on 2020-04-06 (about +0.907 in the mean and +0.782 in the median). Since the it is descriptive and unweighted, it does not prove any casuality.
+-   Counties with below-average median household income (n = 123) reported higher CLI than above-average income counties (n = 97): mean 1.026 vs 0.907, median 0.91 vs 0.782. Since the it is descriptive and unweighted, it does not prove any casuality.
 
 
 ```{r}
-# Scatterplot + Pearson correlation
+# Scatterplot & correlation
 ggplot(dat21, aes(x = hh_income, y = cli0406)) +
   geom_point(alpha = 0.5) +
   geom_smooth(method = "lm", se = FALSE) +
@@ -309,4 +329,5 @@ ggplot(dat21, aes(x = hh_income, y = cli0406)) +
 
 cor(dat21$hh_income, dat21$cli0406, use = "complete.obs")
 ```
+
 -   The scatterplot shows a slight downward trend, and the Pearson correlation is −0.0666, indicating little meaningful linear relationship between median household income and CLI on 2020-04-06. The wide scatter around the fitted line indicates substantial variability across counties.
