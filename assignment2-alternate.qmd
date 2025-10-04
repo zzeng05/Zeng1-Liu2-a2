@@ -13,6 +13,7 @@ You may work in pairs or individually for this assignment. Make sure you join a 
 library(tidyverse)
 library(epidatr)
 library(censusapi)
+# working repo could be found at: https://github.com/zzeng05/Zeng1-Liu2-a2.git
 ```
 
 In this assignment, you will pull from APIs to get data from various data sources and use your data wrangling skills to use them all together. You should turn in a report in PDF or HTML format that addresses all of the questions in this assignment, and describes the data that you pulled and analyzed. You do not need to include full introduction and conclusion sections like a full report, but you should make sure to answer the questions in paragraph form, and include all relevant tables and graphics.
