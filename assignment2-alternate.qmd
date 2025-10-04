@@ -2,7 +2,7 @@
 title: "Assignment 2"
 subtitle: "Due at 11:59pm on Oct 3rd."
 Auther: "Troy (Shengkun) Liu & Zupeng Zeng"
-format: html
+format: pdf
 editor: visual
 ---
 
@@ -24,7 +24,6 @@ Whenever possible, use piping and `dplyr`. Avoid hard-coding any numbers within 
 Our first data source is the Delphi COVIDcast data. You can access this using the Epidata API built by Carnegie Mellon University's Delphi Research group. Documentation for this API can be found here: <https://cmu-delphi.github.io/delphi-epidata/>. Here, we find the smoothed estimate of the proportion of people experiencing Covid-like symptoms by county from April 6, 2020 to April 14, 2020.
 
 ```{r}
-#| eval: FALSE
 covid <- pub_covidcast('fb-survey', 
                        'smoothed_wcli', 
                        'county', 
