@@ -243,6 +243,7 @@ covid_income_0406 <- covid_acs_matched %>%
   )
 covid_income_0406
 ```
+
 - Counties with below-average median household income (n = 131) reported higher CLI than above-average income counties (n = 89): mean 1.011 vs 0.918, median 0.916 vs 0.782. Since the it is descriptive and unweighted, it does not prove any casuality.
 
 
